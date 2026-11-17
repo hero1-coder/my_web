@@ -2,33 +2,17 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="robots" content="noindex, nofollow"> <!-- 第1招：防搜索引擎 -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>郭子涵，I LOVE U</title>
   <style>
-    /* 密码锁的样式 */
-    #password-screen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #100b11; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; z-index: 9999;
-      color: #fff; font-family: sans-serif;
-    }
-    #password-screen input {
-      padding: 10px; font-size: 16px; border-radius: 8px; border: none; margin-bottom: 10px;
-    }
-    #password-screen button {
-      padding: 10px 20px; font-size: 16px; border-radius: 8px; border: none;
-      background: #ff5d95; color: white; cursor: pointer;
-    }
-    #password-screen button:hover { background: #ff78a8; }
-    
-    /* 原有样式 */
     * { box-sizing: border-box; }
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
     body {
-      display: grid; place-items: center;
+      display: grid;
+      place-items: center;
       background: radial-gradient(ellipse at center, #24121d 0%, #100b11 48%, #050507 100%);
-      color: #fff2f6; font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      color: #fff2f6;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
     }
     canvas { display: block; width: min(100vw, 123.53vh); height: min(100vh, 81vw); }
     .hint {
@@ -39,39 +23,20 @@
   </style>
 </head>
 <body>
-
-  <!-- 密码锁界面 -->
-  <div id="password-screen">
-    <h2 style="margin-bottom: 20px;">请输入专属密码</h2>
-    <input type="password" id="pwd" placeholder="输入密码...">
-    <button onclick="checkPassword()">进入</button>
-  </div>
-
-  <!-- 你的主页面 -->
   <canvas id="scene" aria-label="跳动的爱心、照片和文字"></canvas>
   <div class="hint">MADE WITH LOVE</div>
-
   <script>
-    // 【第3招：密码验证逻辑】
-    function checkPassword() {
-      const input = document.getElementById('pwd').value;
-      // 这里的 5201314 就是密码，你可以自己改
-      if (input === '5201314') {
-        document.getElementById('password-screen').style.display = 'none';
-      } else {
-        alert('密码不对哦，再想想~');
-      }
-    }
-
-    // 下面是你的原版爱心代码
     const W = 840, H = 680;
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
+    
+    // 【已修改】：去掉了 heart_photos/ 文件夹前缀，直接读取当前目录的照片
     const photos = Array.from({length: 10}, (_, i) => {
       const img = new Image();
       img.src = `photo_${String(i + 1).padStart(2, '0')}.jpg`;
       return img;
     });
+    
     const photoLayout = [
       [-48, -166], [48, -166], [-145, -128], [145, -128],
       [-232, -38], [232, -38], [-184, 78], [184, 78], [-72, 158], [72, 158]
@@ -85,6 +50,7 @@
       return [x * 10.5, y * 10.5];
     }
 
+    // Fill the heart with a soft field of particles, plus a denser glowing edge.
     for (let i = 0; i < 1250; i++) {
       const t = rand(0, Math.PI * 2);
       const [x, y] = heartPoint(t);
@@ -142,6 +108,7 @@
       ctx.clearRect(0, 0, W, H);
       const cx = W/2, cy = H/2;
 
+      // Soft halo behind the heart.
       const glow = ctx.createRadialGradient(cx, cy, 15, cx, cy, 235);
       glow.addColorStop(0, 'rgba(255, 68, 132, .13)');
       glow.addColorStop(1, 'rgba(255, 68, 132, 0)');
@@ -159,6 +126,7 @@
       }
       ctx.globalAlpha = 1;
 
+      // Photos stay still and are drawn above the heart particles.
       photoLayout.forEach(([dx, dy], i) => roundedImage(photos[i], cx + dx, cy + dy, 68));
 
       ctx.textAlign = 'center';
