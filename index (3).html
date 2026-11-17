@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>郭子涵，I LOVE U</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    body {
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at center, #24121d 0%, #100b11 48%, #050507 100%);
+      color: #fff2f6;
+      font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    }
+    canvas { display: block; width: min(100vw, 123.53vh); height: min(100vh, 81vw); }
+    .hint {
+      position: fixed; bottom: 18px; left: 0; right: 0; text-align: center;
+      color: rgba(255, 224, 236, .55); font-size: 12px; letter-spacing: .18em;
+      user-select: none; pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene" aria-label="跳动的爱心、照片和文字"></canvas>
+  <div class="hint">MADE WITH LOVE</div>
+  <script>
+    const W = 840, H = 680;
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const photos = Array.from({length: 10}, (_, i) => {
+      const img = new Image();
+      img.src = `heart_photos/photo_${String(i + 1).padStart(2, '0')}.jpg`;
+      return img;
+    });
+    const photoLayout = [
+      [-48, -166], [48, -166], [-145, -128], [145, -128],
+      [-232, -38], [232, -38], [-184, 78], [184, 78], [-72, 158], [72, 158]
+    ];
+    const particles = [];
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    function heartPoint(t) {
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+      return [x * 10.5, y * 10.5];
+    }
+
+    // Fill the heart with a soft field of particles, plus a denser glowing edge.
+    for (let i = 0; i < 1250; i++) {
+      const t = rand(0, Math.PI * 2);
+      const [x, y] = heartPoint(t);
+      const inset = Math.sqrt(Math.random()) * 0.92;
+      particles.push({ x: x * inset, y: y * inset, r: rand(.7, 2.0), edge: false, phase: rand(0, 6.28) });
+    }
+    for (let i = 0; i < 520; i++) {
+      const [x, y] = heartPoint(rand(0, Math.PI * 2));
+      particles.push({ x: x + rand(-5, 5), y: y + rand(-5, 5), r: rand(.8, 2.2), edge: true, phase: rand(0, 6.28) });
+    }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function roundedImage(img, x, y, size) {
+      if (!img.complete || !img.naturalWidth) return;
+      const r = 12;
+      ctx.save();
+      ctx.shadowColor = 'rgba(255, 93, 149, .34)';
+      ctx.shadowBlur = 13;
+      ctx.fillStyle = '#ffe1ec';
+      ctx.beginPath();
+      ctx.roundRect(x - size/2 - 3, y - size/2 - 3, size + 6, size + 6, r + 3);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x - size/2, y - size/2, size, size, r);
+      ctx.clip();
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const side = Math.min(iw, ih);
+      const sx = (iw - side) / 2;
+      const cropY = (ih - side) * .38;
+      ctx.drawImage(img, sx, cropY, side, side, x - size/2, y - size/2, size, size);
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(255,255,255,.88)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x - size/2, y - size/2, size, size, r);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function draw(time) {
+      const t = time / 1000;
+      const beat = (Math.sin(t * Math.PI * 2 * 1.05) * .5 + Math.sin(t * Math.PI * 4.2) * .18);
+      const pulse = 1 + beat * .045;
+      ctx.clearRect(0, 0, W, H);
+      const cx = W/2, cy = H/2;
+
+      // Soft halo behind the heart.
+      const glow = ctx.createRadialGradient(cx, cy, 15, cx, cy, 235);
+      glow.addColorStop(0, 'rgba(255, 68, 132, .13)');
+      glow.addColorStop(1, 'rgba(255, 68, 132, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - 250, cy - 250, 500, 500);
+
+      for (const p of particles) {
+        const twinkle = .55 + .45 * Math.sin(t * 2.2 + p.phase);
+        const x = cx + p.x * pulse, y = cy + p.y * pulse;
+        ctx.globalAlpha = (p.edge ? .72 : .40) + twinkle * (p.edge ? .28 : .22);
+        ctx.fillStyle = p.edge ? '#ff78a8' : (twinkle > .82 ? '#fff0f5' : '#ff5d95');
+        ctx.beginPath();
+        ctx.arc(x, y, p.r * (p.edge ? 1 : .85), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Photos stay still and are drawn above the heart particles.
+      photoLayout.forEach(([dx, dy], i) => roundedImage(photos[i], cx + dx, cy + dy, 68));
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 27px "Microsoft YaHei UI", "Microsoft YaHei", sans-serif';
+      ctx.fillStyle = 'rgba(100, 25, 55, .85)';
+      ctx.fillText('郭子涵，I LOVE U', cx + 2, cy + 3);
+      ctx.fillStyle = '#fff4f7';
+      ctx.shadowColor = 'rgba(255, 80, 140, .85)';
+      ctx.shadowBlur = 16;
+      ctx.fillText('郭子涵，I LOVE U', cx, cy);
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>
